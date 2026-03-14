@@ -138,6 +138,6 @@ jobs:
         with:
           args: >
             -Dsonar.organization=limanindou
-            -Dsonar.projectKey=limanindou_ci-build-scan
+            -Dsonar.projectKey=limanindou_LuckyFlip
             -Dsonar.sources=backend/src/main,frontend/src
             -Dsonar.java.binaries=backend/target/classes
