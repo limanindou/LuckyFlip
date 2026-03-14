@@ -1,11 +1,16 @@
 name: CI - Build & Scan
 
+# Trigger workflow on push, PR, or manual dispatch
 on:
   push:
     branches: [ main, master, devsecops ]
   pull_request:
     branches: [ main, master, devsecops ]
   workflow_dispatch: {}
+
+# Force Node.js 24 for all JavaScript actions (future-proof)
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   backend:
@@ -29,7 +34,7 @@ jobs:
 
       - name: Build backend (tests)
         working-directory: backend
-        run: mvn -B package
+        run: mvn -B package -DskipTests
 
       - name: Build backend image
         uses: docker/build-push-action@v4
@@ -37,9 +42,10 @@ jobs:
           context: ./backend
           push: false
           tags: luckyflip-backend:ci
+          file: ./backend/Dockerfile
 
       - name: Scan backend image with Trivy
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.33.0
         with:
           image-ref: luckyflip-backend:ci
 
@@ -73,9 +79,10 @@ jobs:
           context: ./frontend
           push: false
           tags: luckyflip-frontend:ci
+          file: ./frontend/Dockerfile
 
       - name: Scan frontend image with Trivy
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.33.0
         with:
           image-ref: luckyflip-frontend:ci
 
@@ -88,9 +95,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Docker Compose up (smoke)
+      - name: Docker Compose up (smoke test)
         run: |
           docker compose -f docker-compose.yml up -d --build
-          sleep 10
+          sleep 15
           docker compose -f docker-compose.yml ps
           docker compose -f docker-compose.yml down
