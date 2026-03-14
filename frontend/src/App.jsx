@@ -305,7 +305,7 @@ export default function App() {
         </section>
       </main>
 
-      <footer className="footer">Built with ❤️ by Limani Ndou — Lucky Flip Game</footer>
+      <footer className="footer">Built with ❤️ by Limani Ndou — Lucky Flip</footer>
     </div>
   )
 }
