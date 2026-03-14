@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
+import PropTypes from 'prop-types'
 import { FaArrowUp, FaArrowDown, FaMinus, FaRedo, FaRegClock, FaPlay } from 'react-icons/fa'
 
 // CardImage: renders a playing-card-like SVG. If `hidden` is true, shows a card back.
@@ -55,6 +56,19 @@ function CardImage({ value, seed = 0, hidden = false }) {
       </svg>
     </div>
   )
+}
+
+// Add prop-types validation for CardImage
+CardImage.propTypes = {
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  seed: PropTypes.number,
+  hidden: PropTypes.bool
+}
+
+CardImage.defaultProps = {
+  value: undefined,
+  seed: 0,
+  hidden: false
 }
 
 // Reward mapping by elapsed seconds (1-based). Index 1 => 1 second.
