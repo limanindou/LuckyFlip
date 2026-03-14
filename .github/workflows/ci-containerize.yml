@@ -117,39 +117,25 @@ jobs:
           docker compose -f docker-compose.yml ps
           docker compose -f docker-compose.yml down
 
-  # SonarQube scanning job (requires SONAR_HOST_URL and SONAR_TOKEN repo secrets)
   sonar:
     needs: [backend, frontend]
     runs-on: ubuntu-latest
-    if: ${{ secrets.SONAR_HOST_URL && secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Sonar - info
-        run: |
-          echo "Running SonarScanner against project '${{ github.repository }}' on branch '${{ github.ref_name }}'"
-          echo "Ensure repository secrets SONAR_HOST_URL and SONAR_TOKEN are configured."
-
-      - name: Set up JDK 17 for Sonar Java analysis
+      - name: Set up JDK 17 for Sonar
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Build backend for Sonar (produces bytecode)
+      - name: Build backend for Sonar (bytecode needed)
         working-directory: backend
         run: mvn -B -DskipTests package
 
-      - name: Run SonarScanner (Docker image)
-        env:
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          # Run the official sonar-scanner CLI container mounting workspace
-          docker run --rm -v "${{ github.workspace }}":/usr/src -w /usr/src sonarsource/sonar-scanner-cli \
-            -Dsonar.projectKey="${{ github.repository }}" \
-            -Dsonar.sources="backend/src/main,frontend/src" \
-            -Dsonar.java.binaries="backend/target/classes" \
-            -Dsonar.host.url="$SONAR_HOST_URL" \
-            -Dsonar.login="$SONAR_TOKEN" \
-            -Dsonar.branch.name="${{ github.ref_name }}"
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@v2
+        with:
+          projectKey: "ci-build-scan"              # Your SonarCloud project key
+          organization: "your-github-org-or-user"  # GitHub org or username
+          token: ${{ secrets.SONAR_TOKEN }}       # Only SONAR_TOKEN secret needed
