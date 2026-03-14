@@ -39,7 +39,7 @@ jobs:
           tags: luckyflip-backend:ci
 
       - name: Scan backend image with Trivy
-        uses: aquasecurity/trivy-action@v0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: luckyflip-backend:ci
 
