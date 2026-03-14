@@ -19,7 +19,6 @@ A compact demo game: a Java Spring Boot backend with a small static frontend wid
 - Spring Boot (REST API and serving static content)
 - Maven (build, test, package) — `mvnw` / `mvnw.cmd` included
 - Frontend: static HTML/CSS/JS widget (no framework) in `frontend/`
-- Optional dev helper: Python 3 (to run a lightweight static server for preview)
 
 ---
 
