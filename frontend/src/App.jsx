@@ -7,11 +7,13 @@ import { FaArrowUp, FaArrowDown, FaMinus, FaRedo, FaRegClock, FaPlay } from 'rea
 function CardImage({ value, seed = 0, hidden = false }) {
   const suits = ['♠', '♥', '♦', '♣']
   function pickSuit(val, s) {
-    let key = String(val) + '|' + String(s)
+    const key = String(val) + '|' + String(s)
     let h = 0
-    for (let i = 0; i < key.length; i++) {
-      h = (h << 5) - h + key.charCodeAt(i)
-      h |= 0
+    // Iterate over Unicode code points to avoid surrogate pair issues
+    for (const ch of key) {
+      const cp = ch.codePointAt(0) || 0
+      // use multiplication instead of bitwise shifts; truncate explicitly
+      h = Math.trunc(h * 31 + cp)
     }
     return suits[Math.abs(h) % suits.length]
   }
@@ -247,10 +249,16 @@ export default function App() {
     }
   }, [])
 
+  // compute popup classes to avoid nested ternary in JSX
+  const popupVisibleClass = popup.show ? 'show' : ''
+  let popupTypeClass = ''
+  if (popup.type === 'win') popupTypeClass = 'win'
+  else if (popup.type === 'lose') popupTypeClass = 'lose'
+
   return (
     <div className="app-root">
       {/* Popup for results */}
-      <div className={`popup ${popup.show ? 'show' : ''} ${popup.type === 'win' ? 'win' : popup.type === 'lose' ? 'lose' : ''}`}>
+      <div className={`popup ${popupVisibleClass} ${popupTypeClass}`}>
         {popup.text}
       </div>
 
