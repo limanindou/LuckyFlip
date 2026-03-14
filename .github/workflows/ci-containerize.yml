@@ -1,6 +1,5 @@
 name: CI - Build & Scan
 
-# Trigger workflow on push, PR, or manual dispatch
 on:
   push:
     branches: [ main, master, devsecops ]
@@ -8,7 +7,6 @@ on:
     branches: [ main, master, devsecops ]
   workflow_dispatch: {}
 
-# Force Node.js 24 for all JavaScript actions (future-proof)
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -37,7 +35,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-m2-
 
-      - name: Build backend (tests)
+      - name: Build backend
         working-directory: backend
         run: mvn -B package -DskipTests
 
@@ -129,13 +127,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Build backend for Sonar (bytecode needed)
+      - name: Build backend for Sonar
         working-directory: backend
         run: mvn -B -DskipTests package
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          projectKey: "ci-build-scan"              # Your SonarCloud project key
-          organization: "your-github-org-or-user"  # GitHub org or username
-          token: ${{ secrets.SONAR_TOKEN }}       # Only SONAR_TOKEN secret needed
+          args: >
+            -Dsonar.organization=limanindou
+            -Dsonar.projectKey=limanindou_ci-build-scan
+            -Dsonar.sources=backend/src/main,frontend/src
+            -Dsonar.java.binaries=backend/target/classes
