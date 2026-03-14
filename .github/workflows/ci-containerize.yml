@@ -1,5 +1,6 @@
 name: CI - Build & Scan
 
+# Trigger workflow on push, PR, or manual dispatch
 on:
   push:
     branches: [ main, master, devsecops ]
@@ -7,6 +8,7 @@ on:
     branches: [ main, master, devsecops ]
   workflow_dispatch: {}
 
+# Force Node.js 24 for all JavaScript actions (future-proof)
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -16,9 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify runner Node and JS env
+      - name: Verify Node.js
         run: |
-          echo "Runner Node version:" && node -v || echo "node not available"
+          echo "Runner Node version:" && node -v || echo "Node not available"
           echo "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=$FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"
 
       - name: Set up JDK 17
@@ -39,7 +41,7 @@ jobs:
         working-directory: backend
         run: mvn -B package -DskipTests
 
-      - name: Build backend image
+      - name: Build backend Docker image
         uses: docker/build-push-action@v4
         with:
           context: ./backend
@@ -47,7 +49,7 @@ jobs:
           tags: luckyflip-backend:ci
           file: ./backend/Dockerfile
 
-      - name: Scan backend image with Trivy
+      - name: Scan backend Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: luckyflip-backend:ci
@@ -57,12 +59,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify runner Node and JS env
+      - name: Verify Node.js
         run: |
-          echo "Runner Node version:" && node -v || echo "node not available"
+          echo "Runner Node version:" && node -v || echo "Node not available"
           echo "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=$FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"
 
-      - name: Set up Node
+      - name: Set up Node 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -81,7 +83,7 @@ jobs:
           npm ci
           npm run build
 
-      - name: Build frontend image
+      - name: Build frontend Docker image
         uses: docker/build-push-action@v4
         with:
           context: ./frontend
@@ -89,7 +91,7 @@ jobs:
           tags: luckyflip-frontend:ci
           file: ./frontend/Dockerfile
 
-      - name: Scan frontend image with Trivy
+      - name: Scan frontend Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: luckyflip-frontend:ci
@@ -100,15 +102,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify runner Node and JS env
-        run: |
-          echo "Runner Node version:" && node -v || echo "node not available"
-          echo "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=$FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Docker Compose up (smoke test)
+      - name: Docker Compose smoke test
         run: |
           docker compose -f docker-compose.yml up -d --build
           sleep 15
@@ -127,11 +124,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Build backend for Sonar
+      - name: Build backend for Sonar (bytecode needed)
         working-directory: backend
         run: mvn -B -DskipTests package
 
-      - name: SonarCloud Scan
+      - name: SonarCloud Analysis
         uses: sonarsource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
