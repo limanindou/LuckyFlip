@@ -1,0 +1,96 @@
+name: CI - Build & Scan
+
+on:
+  push:
+    branches: [ main, master, devsecops ]
+  pull_request:
+    branches: [ main, master, devsecops ]
+  workflow_dispatch: {}
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      - name: Build backend (tests)
+        working-directory: backend
+        run: mvn -B package
+
+      - name: Build backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: false
+          tags: luckyflip-backend:ci
+
+      - name: Scan backend image with Trivy
+        uses: aquasecurity/trivy-action@v0.12.1
+        with:
+          image-ref: luckyflip-backend:ci
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install & build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          push: false
+          tags: luckyflip-frontend:ci
+
+      - name: Scan frontend image with Trivy
+        uses: aquasecurity/trivy-action@v0.12.1
+        with:
+          image-ref: luckyflip-frontend:ci
+
+  compose-smoke:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Compose up (smoke)
+        run: |
+          docker compose -f docker-compose.yml up -d --build
+          sleep 10
+          docker compose -f docker-compose.yml ps
+          docker compose -f docker-compose.yml down
