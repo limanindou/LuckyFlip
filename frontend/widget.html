@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Lucky Flip</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:#0b1115;display:flex;align-items:center;justify-content:center;font-family:'Syne',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+
+    /* ── Widget shell ── */
+    .widget{
+      width:860px;
+      background:linear-gradient(180deg,rgba(15,18,20,0.6),rgba(8,10,12,0.7));
+      border-radius:18px;
+      padding:32px 30px;
+      border:1px solid rgba(255,255,255,0.03);
+      box-shadow:0 30px 70px rgba(2,6,10,0.7), inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+
+    /* ── Top bar ── */
+    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+
+    .balance-pill{
+      display:inline-flex;align-items:center;gap:10px;
+      background:linear-gradient(180deg,#07120b,#081712);
+      border:1px solid rgba(74, 208, 120,0.14);
+      border-radius:999px;padding:8px 18px 8px 10px;
+      color:#bff8c9;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;letter-spacing:0.4px;
+      box-shadow:0 10px 24px rgba(6,50,24,0.28);
+    }
+    .balance-pill .coin{width:22px;height:22px;flex-shrink:0}
+
+    .game-id{color:#2f3f52;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1.6px}
+
+    /* ── Cards row ── */
+    .cards-row{display:grid;grid-template-columns:1fr 92px 1fr;align-items:center;gap:24px;margin-bottom:20px}
+    .card-col{display:flex;flex-direction:column;align-items:center;gap:12px}
+
+    .col-label{
+      width:100%;display:flex;align-items:center;gap:8px;
+      color:#6b7b8e;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;
+    }
+    .col-label svg{flex-shrink:0;opacity:.7}
+
+    .vs-badge{
+      width:54px;height:54px;border-radius:50%;
+      background:rgba(12,18,26,0.6);border:1px solid rgba(255,255,255,0.04);
+      display:flex;align-items:center;justify-content:center;
+      color:#5a6b7e;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
+      box-shadow:0 8px 22px rgba(4,8,12,0.6);
+    }
+
+    /* Playing card */
+    .card{
+      width:200px;height:270px;
+      background:#fbf9f3;
+      border-radius:16px;
+      box-shadow:0 24px 40px rgba(3,5,8,0.6), 0 1px 0 rgba(255,255,255,0.6) inset;
+      position:relative;overflow:hidden;
+      display:flex;align-items:center;justify-content:center;
+      transition:transform .12s ease, box-shadow .12s ease;
+      border:1px solid rgba(0,0,0,0.06);
+    }
+    .card.dark-suit{color:#111}
+    .card.red-suit{color:#d33b3b}
+
+    .card:hover{transform:translateY(-6px);box-shadow:0 30px 70px rgba(3,5,8,0.75)}
+
+    .card-tl{position:absolute;top:16px;left:16px;display:flex;flex-direction:column;align-items:center;line-height:1.05}
+    .card-br{position:absolute;bottom:16px;right:16px;display:flex;flex-direction:column;align-items:center;line-height:1.05;transform:rotate(180deg)}
+    .card-rank{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:900}
+    .card-small-suit{font-size:14px}
+    .card-center-suit{font-size:72px;line-height:1;user-select:none;opacity:0.98}
+
+    /* card back / hidden */
+    .card.hidden-card{background:linear-gradient(180deg,#07101a,#051018);border:1.5px solid rgba(255,255,255,0.03)}
+    .card.hidden-card .card-center-suit{font-size:44px;color:#1e3a5f;opacity:.6}
+
+    /* ── Timer ── */
+    .timer-section{
+      display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px
+    }
+    .timer-row{display:flex;align-items:center;gap:10px;color:#7fb4ff;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700}
+    .timer-row svg{flex-shrink:0}
+    .progress-track{width:420px;height:8px;background:linear-gradient(90deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:8px;overflow:hidden;border:1px solid rgba(0,0,0,0.25)}
+    .progress-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,#2f86ff,#5da8ff);transition:width .6s linear;box-shadow:0 6px 18px rgba(47,134,255,0.12) inset}
+
+    /* ── Buttons ── */
+    .actions-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+    .secondary-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px}
+
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:12px;
+      padding:14px 18px;border-radius:12px;cursor:pointer;
+      font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#e6eef6;
+      background:linear-gradient(180deg,rgba(12,14,16,0.7),rgba(10,12,14,0.6));
+      border:1px solid rgba(255,255,255,0.03);transition:opacity .12s,transform .08s,background .12s,box-shadow .12s;
+      height:54px;
+    }
+    .btn svg{flex-shrink:0;width:18px;height:18px}
+
+    .btn-higher{background:linear-gradient(180deg,#072217,#0b3a24);border-color:rgba(46, 153, 84,0.14);color:#aaf6c5;box-shadow:0 6px 18px rgba(32,90,44,0.08)}
+    .btn-lower {background:linear-gradient(180deg,#2b1111,#2a0d0d);border-color:rgba(153,46,46,0.14);color:#ffb8be;box-shadow:0 6px 18px rgba(90,30,30,0.06)}
+    .btn-draw  {background:linear-gradient(180deg,#171226,#261c33);border-color:rgba(110,86,179,0.12);color:#d6cfff}
+
+    .btn-start{background:transparent;border:1px solid rgba(90,144,217,0.16);color:#cfe6ff}
+    .btn-next{background:transparent;border:1px solid rgba(120,130,142,0.08);color:#a8b3c2}
+
+    .btn:disabled{opacity:.38;cursor:not-allowed;transform:none}
+
+    /* make secondary buttons visually lighter and full width */
+    .secondary-grid .btn{height:48px;padding:12px 16px}
+
+    /* ── Result banner ── */
+    .result-banner{
+      display:flex;align-items:center;justify-content:center;gap:12px;padding:16px;border-radius:12px;
+      background:linear-gradient(180deg,#0f3f22,#073118);border:1px solid rgba(74,208,120,0.18);
+      color:#a7f6c3;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+      margin-top:18px;box-shadow:0 12px 30px rgba(8,24,12,0.5);
+      width:100%;box-sizing:border-box; /* ensure banner spans full widget width */
+    }
+    .result-banner.hidden{display:none}
+    .result-banner svg{flex-shrink:0;margin-right:8px}
+    .result-banner.lose{background:linear-gradient(180deg,#2a1111,#1a0b0b);border-color:rgba(255,90,90,0.12);color:#ffb4b4}
+
+    /* small responsive tweaks */
+    @media (max-width:920px){
+      .widget{width:92vw;padding:20px}
+      .cards-row{grid-template-columns:1fr 64px 1fr}
+      .card{width:150px;height:206px}
+      .progress-track{width:320px}
+      .actions-grid{grid-template-columns:1fr;gap:12px}
+      .secondary-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="widget" id="widget">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="balance-pill" id="balancePill">
+      <!-- R coin SVG -->
+      <svg class="coin" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="11" cy="11" r="10" stroke="#4ade80" stroke-width="1.5"/>
+        <text x="11" y="15.5" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" font-weight="700" fill="#4ade80">R</text>
+      </svg>
+      <span id="balanceText">R17.00</span>
+    </div>
+    <div class="game-id" id="gameIdLabel">GAME #4821</div>
+  </div>
+
+  <!-- Cards row -->
+  <div class="cards-row">
+
+    <!-- Current card -->
+    <div class="card-col">
+      <div class="col-label">
+        <!-- grid icon -->
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Current
+      </div>
+      <div class="card dark-suit" id="curCard">
+        <div class="card-tl"><span class="card-rank" id="curRank">6</span><span class="card-small-suit" id="curSuitTL">♠</span></div>
+        <span class="card-center-suit" id="curSuitC">♠</span>
+        <div class="card-br"><span class="card-rank" id="curRankBR">6</span><span class="card-small-suit" id="curSuitBR">♠</span></div>
+      </div>
+    </div>
+
+    <!-- VS badge -->
+    <div class="vs-badge">VS</div>
+
+    <!-- Next card -->
+    <div class="card-col">
+      <div class="col-label">
+        <!-- arrow-right icon -->
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        Next (Revealed)
+      </div>
+      <div class="card hidden-card" id="nxtCard">
+        <div class="card-tl"><span class="card-rank" id="nxtRank" style="opacity:.2">?</span><span class="card-small-suit" id="nxtSuitTL" style="opacity:.2"></span></div>
+        <span class="card-center-suit" id="nxtSuitC">★</span>
+        <div class="card-br"><span class="card-rank" id="nxtRankBR" style="opacity:.2">?</span><span class="card-small-suit" id="nxtSuitBR" style="opacity:.2"></span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Timer -->
+  <div class="timer-section">
+    <div class="timer-row">
+      <!-- clock SVG -->
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+      <span id="timerText">10s</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:100%"></div>
+    </div>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="actions-grid">
+    <button class="btn btn-higher" id="btnHigher">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
+      Higher
+    </button>
+    <button class="btn btn-lower" id="btnLower">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>
+      Lower
+    </button>
+    <button class="btn btn-draw" id="btnDraw">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16"/><path d="M4 16h16"/></svg>
+      Draw
+    </button>
+  </div>
+
+  <!-- Secondary buttons -->
+  <div class="secondary-grid">
+    <button class="btn btn-start" id="btnStart">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Start New Game
+    </button>
+    <button class="btn btn-next" id="btnNext">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3.2-6.9"/><path d="M21 3v6h-6"/></svg>
+      Next Try
+    </button>
+  </div>
+
+  <!-- Result banner -->
+  <div class="result-banner hidden" id="resultBanner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    <span id="resultText">WIN — BALANCE: R17</span>
+  </div>
+
+</div>
+
+<script>
+  const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const SUITS = ['♠','♥','♦','♣'];
+  const RED   = new Set(['♥','♦']);
+  const REWARDS = {1:10,2:8,3:7,4:6,5:5,6:4,7:3,8:2,9:1,10:0};
+
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function val(r){ return r==='A'?1:r==='J'?11:r==='Q'?12:r==='K'?13:parseInt(r,10); }
+
+  let balance = 17, gameId = 4821;
+  let current = null, pending = null, guessed = false;
+  let secondsLeft = 10, timerInterval = null;
+
+  // ── DOM refs ──
+  const $ = id => document.getElementById(id);
+  const curCard=$('curCard'), nxtCard=$('nxtCard');
+  const curRank=$('curRank'), curRankBR=$('curRankBR');
+  const curSuitTL=$('curSuitTL'), curSuitC=$('curSuitC'), curSuitBR=$('curSuitBR');
+  const nxtRank=$('nxtRank'), nxtRankBR=$('nxtRankBR');
+  const nxtSuitTL=$('nxtSuitTL'), nxtSuitC=$('nxtSuitC'), nxtSuitBR=$('nxtSuitBR');
+  const timerText=$('timerText'), progressFill=$('progressFill');
+  const resultBanner=$('resultBanner'), resultText=$('resultText');
+  const balanceText=$('balanceText'), gameIdLabel=$('gameIdLabel');
+  const btnHigher=$('btnHigher'), btnLower=$('btnLower'), btnDraw=$('btnDraw');
+  const btnNext=$('btnNext');
+
+  function renderFaceCard(card, rankEl, rankBREl, suitTLEl, suitCEl, suitBREl, plate){
+    const isRed = RED.has(card.suit);
+    plate.className = 'card ' + (isRed ? 'red-suit' : 'dark-suit');
+    rankEl.textContent  = card.rank;
+    rankBREl.textContent= card.rank;
+    suitTLEl.textContent= card.suit;
+    suitCEl.textContent = card.suit;
+    suitBREl.textContent= card.suit;
+    rankEl.style.opacity=rankBREl.style.opacity=suitTLEl.style.opacity=suitBREl.style.opacity='1';
+    suitCEl.style.fontSize='72px';
+    suitCEl.style.color='';
+  }
+
+  function hideNextCard(){
+    nxtCard.className='card hidden-card';
+    nxtRank.textContent=nxtRankBR.textContent='?';
+    nxtSuitTL.textContent=nxtSuitBR.textContent='';
+    nxtSuitC.textContent='★';
+    nxtRank.style.opacity=nxtRankBR.style.opacity=nxtSuitTL.style.opacity=nxtSuitBR.style.opacity='0.15';
+    nxtSuitC.style.fontSize='42px'; nxtSuitC.style.color='#1e3a5f';
+  }
+
+  function showResultBanner(win, amt){
+    resultBanner.className='result-banner'+(win?'':' lose');
+    resultBanner.querySelector('svg').style.display = win ? '' : 'none';
+    // for lose show X icon
+    if(!win){
+      resultBanner.insertAdjacentHTML('afterbegin',
+        `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="_loseIcon"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>`);
+    }
+    resultText.textContent = (win?'WIN':'LOSE') + ' — BALANCE: R'+balance;
+  }
+  function hideResultBanner(){ resultBanner.className='result-banner hidden'; const li=$('_loseIcon'); if(li) li.remove(); }
+
+  function updateBalance(){ balanceText.textContent='R'+balance.toFixed(2); }
+
+  function setGuessButtons(disabled){
+    btnHigher.disabled=btnLower.disabled=btnDraw.disabled=disabled;
+  }
+
+  // Timer
+  function startTimer(){
+    clearInterval(timerInterval);
+    secondsLeft=10;
+    timerText.textContent=secondsLeft+'s';
+    progressFill.style.transition='none';
+    progressFill.style.width='100%';
+    setTimeout(()=>{ progressFill.style.transition='width 1s linear'; },30);
+
+    timerInterval=setInterval(()=>{
+      secondsLeft--;
+      timerText.textContent=secondsLeft+'s';
+      progressFill.style.width=(secondsLeft/10*100)+'%';
+      if(secondsLeft<=0){
+        clearInterval(timerInterval);
+        if(!guessed) autoReveal();
+      }
+    },1000);
+  }
+
+  function stopTimer(){ clearInterval(timerInterval); }
+
+  function autoReveal(){
+    if(guessed) return;
+    guessed=true;
+    const next={rank:pick(RANKS),suit:pick(SUITS)};
+    pending=next;
+    renderFaceCard(next,nxtRank,nxtRankBR,nxtSuitTL,nxtSuitC,nxtSuitBR,nxtCard);
+    setGuessButtons(true);
+    hideResultBanner();
+    // no score change on timeout reveal
+  }
+
+  function guess(type){
+    if(guessed||!current) return;
+    stopTimer();
+    guessed=true;
+    setGuessButtons(true);
+
+    const next={rank:pick(RANKS),suit:pick(SUITS)};
+    pending=next;
+    renderFaceCard(next,nxtRank,nxtRankBR,nxtSuitTL,nxtSuitC,nxtSuitBR,nxtCard);
+
+    const cv=val(current.rank), nv=val(next.rank);
+    let win=false;
+    if(type==='HIGHER') win=nv>cv;
+    else if(type==='LOWER') win=nv<cv;
+    else if(type==='DRAW')  win=nv===cv;
+
+    const elapsed=10-secondsLeft;
+    const secs=Math.max(1,Math.min(10,elapsed+1));
+    const reward=REWARDS[secs]??0;
+
+    if(win){ balance+=reward; }
+    else   { balance=Math.max(0,balance-1); }
+
+    updateBalance();
+    showResultBanner(win, win?reward:1);
+  }
+
+  function startGame(){
+    stopTimer(); guessed=false; pending=null;
+    balance=17; gameId=Math.floor(1000+Math.random()*9000);
+    updateBalance();
+    gameIdLabel.textContent='GAME #'+gameId;
+    current={rank:pick(RANKS),suit:pick(SUITS)};
+    renderFaceCard(current,curRank,curRankBR,curSuitTL,curSuitC,curSuitBR,curCard);
+    hideNextCard();
+    hideResultBanner();
+    setGuessButtons(false);
+    startTimer();
+  }
+
+  function nextTry(){
+    if(!pending) return;
+    current=pending; pending=null; guessed=false;
+    renderFaceCard(current,curRank,curRankBR,curSuitTL,curSuitC,curSuitBR,curCard);
+    hideNextCard();
+    hideResultBanner();
+    setGuessButtons(false);
+    startTimer();
+  }
+
+  btnHigher.addEventListener('click',()=>guess('HIGHER'));
+  btnLower .addEventListener('click',()=>guess('LOWER'));
+  btnDraw  .addEventListener('click',()=>guess('DRAW'));
+  $('btnStart').addEventListener('click',startGame);
+  btnNext  .addEventListener('click',nextTry);
+
+  // init
+  startGame();
+</script>
+</body>
+</html>
