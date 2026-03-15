@@ -82,7 +82,12 @@ public class GameService {
         };
 
         if (win) {
-            session.setBalance(session.getBalance() + WIN_AMOUNT);
+            if (guess == GuessType.DRAW) {
+                // Correct DRAW doubles the player's current balance
+                session.setBalance(session.getBalance() * 2);
+            } else {
+                session.setBalance(session.getBalance() + WIN_AMOUNT);
+            }
         } else {
             session.setBalance(session.getBalance() - LOSE_AMOUNT);
         }
@@ -146,8 +151,13 @@ public class GameService {
 
         String result;
         if (win) {
-            // award time-based reward
-            session.setBalance(session.getBalance() + reward);
+            if (guess == GuessType.DRAW) {
+                // Correct DRAW doubles the player's current balance
+                session.setBalance(session.getBalance() * 2);
+            } else {
+                // award time-based reward
+                session.setBalance(session.getBalance() + reward);
+            }
             result = "WIN";
         } else {
             session.setBalance(session.getBalance() - LOSE_AMOUNT);
