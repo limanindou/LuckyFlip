@@ -60,7 +60,7 @@ cd %USERPROFILE%\LuckyFlip
 mvnw.cmd spring-boot:run
 ```
 
-This starts the Spring Boot app (defaults: port 8080 unless configured otherwise in `application.yaml`).
+This starts the Spring Boot app (defaults: port 8080).
 
 2) Build and run the packaged JAR:
 
@@ -99,77 +99,6 @@ python -m http.server 8000
 
 Then open `http://localhost:8000/widget.html` in your browser.
 
-If you run the backend locally and want the widget served from Spring Boot instead, copy (or build pipeline) the frontend files into `src/main/resources/static/` and Spring Boot will serve them automatically at `/widget.html`.
-
----
-
-## 🔧 Development notes & conventions
-- The backend code lives under `src/main/java`. Tests are under `src/test/java`.
-- The static widget is intentionally self-contained to make it easy to preview without a build step.
-- Inline SVG attributes in `frontend/widget.html` may trigger IDE warnings ("Obsolete attribute") in some editors; these warnings are benign for browser rendering. If you prefer, move SVG stroke/fill attributes into CSS to silence those warnings.
-
----
-
-## ⚙️ React migration guidance (optional)
-If you want to migrate the static widget to a modern React app, here is a suggested path:
-
-1) Scaffold a Vite + React app inside the repo:
-
-```cmd
-cd %USERPROFILE%\LuckyFlip
-npm create vite@latest frontend-react -- --template react
-cd frontend-react
-npm install
-```
-
-2) Dev server proxy to Spring Boot to avoid CORS headaches (edit `vite.config.js`):
-
-```js
-// snippet for vite.config.js
-server: {
-  proxy: {
-    '/api': 'http://localhost:8080'
-  }
-}
-```
-
-3) Convert the widget logic to React components:
-- Card, Timer, Controls, ResultBanner → separate components
-- Use React hooks (`useState`, `useEffect`) for state and the timer
-
-4) Production: build (`npm run build`) and copy `dist/` to `src/main/resources/static/` or deploy separately (Netlify/Vercel/CDN).
-
-Automation tip: add a Maven `frontend-maven-plugin` step to build the React app automatically during `mvn package`.
-
----
-
-## 🔁 CI / Build ideas
-- Add a simple GitHub Actions workflow that runs `mvn -B -DskipTests package` and `mvn test` on PRs.
-- If you add a React app, extend the workflow to `npm install && npm run build` and validate the `dist/` artifacts.
-
----
-
-## 🐞 Troubleshooting
-- Backend doesn't start: ensure Java JDK is installed and `JAVA_HOME` is set to Java 11+.
-- Port conflicts: check `application.yaml` or kill the process using port 8080.
-- Widget not loading fonts/assets when opened via `file://`: run a local server (Python) or serve through Spring Boot.
-
----
-
-## 📝 License & contributing
-- Add a `LICENSE` file to choose a license (e.g., MIT) if you want this repo public.
-- CONTRIBUTING guidelines: you can add a `CONTRIBUTING.md` for PR workflow, branch naming, and code style.
-
----
-
-## ℹ️ Final notes
-- This README now contains a full project overview and folder listing as requested.
-- If you'd like I can also:
-  - Add a `LICENSE` file (MIT) and update this README accordingly
-  - Create a `frontend-react/` scaffold and wire a dev proxy and Maven build step
-  - Clean inline SVG attributes in `frontend/widget.html` to silence IDE warnings
-
-Tell me which of these you'd like next and I'll implement it.
 
 ---
 
