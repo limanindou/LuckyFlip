@@ -1,16 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
+import PropTypes from 'prop-types'
 import { FaArrowUp, FaArrowDown, FaMinus, FaRedo, FaRegClock, FaPlay } from 'react-icons/fa'
 
 // CardImage: renders a playing-card-like SVG. If `hidden` is true, shows a card back.
 function CardImage({ value, seed = 0, hidden = false }) {
   const suits = ['♠', '♥', '♦', '♣']
   function pickSuit(val, s) {
-    let key = String(val) + '|' + String(s)
+    const key = String(val) + '|' + String(s)
     let h = 0
-    for (let i = 0; i < key.length; i++) {
-      h = (h << 5) - h + key.charCodeAt(i)
-      h |= 0
+    // Iterate over Unicode code points to avoid surrogate pair issues
+    for (const ch of key) {
+      const cp = ch.codePointAt(0) || 0
+      // use multiplication instead of bitwise shifts; truncate explicitly
+      h = Math.trunc(h * 31 + cp)
     }
     return suits[Math.abs(h) % suits.length]
   }
@@ -55,6 +58,19 @@ function CardImage({ value, seed = 0, hidden = false }) {
       </svg>
     </div>
   )
+}
+
+// Add prop-types validation for CardImage
+CardImage.propTypes = {
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  seed: PropTypes.number,
+  hidden: PropTypes.bool
+}
+
+CardImage.defaultProps = {
+  value: undefined,
+  seed: 0,
+  hidden: false
 }
 
 // Reward mapping by elapsed seconds (1-based). Index 1 => 1 second.
@@ -233,10 +249,16 @@ export default function App() {
     }
   }, [])
 
+  // compute popup classes to avoid nested ternary in JSX
+  const popupVisibleClass = popup.show ? 'show' : ''
+  let popupTypeClass = ''
+  if (popup.type === 'win') popupTypeClass = 'win'
+  else if (popup.type === 'lose') popupTypeClass = 'lose'
+
   return (
     <div className="app-root">
       {/* Popup for results */}
-      <div className={`popup ${popup.show ? 'show' : ''} ${popup.type === 'win' ? 'win' : popup.type === 'lose' ? 'lose' : ''}`}>
+      <div className={`popup ${popupVisibleClass} ${popupTypeClass}`}>
         {popup.text}
       </div>
 
@@ -305,7 +327,7 @@ export default function App() {
         </section>
       </main>
 
-      <footer className="footer">Built with ❤️ — Lucky Flip</footer>
+      <footer className="footer">Built with ❤️ by Limani Ndou — Lucky Flip Game</footer>
     </div>
   )
 }

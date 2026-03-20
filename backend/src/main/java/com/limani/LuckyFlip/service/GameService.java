@@ -37,6 +37,9 @@ public class GameService {
             10, 0
     );
 
+    // Common messages
+    private static final String GAME_NOT_FOUND = "Game not found";
+
     // 🎴 Start New Game
     public GameStartResponse startGame() {
 
@@ -60,7 +63,7 @@ public class GameService {
     // Legacy makeGuess: preserve old behavior for tests and callers that don't pass time
     public GuessResponse makeGuess(Long gameId, GuessType guess) {
         GameSession session = repository.findById(gameId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND));
 
         if (session.getStatus() == GameStatus.GAME_OVER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is already over");
@@ -72,23 +75,19 @@ public class GameService {
         int firstValue = CardUtil.cardValue(session.getFirstCard());
         int secondValue = CardUtil.cardValue(revealed);
 
-        boolean win;
-        switch (guess) {
-            case HIGHER:
-                win = secondValue > firstValue;
-                break;
-            case LOWER:
-                win = secondValue < firstValue;
-                break;
-            case DRAW:
-                win = secondValue == firstValue;
-                break;
-            default:
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown guess type");
-        }
+        boolean win = switch (guess) {
+            case HIGHER -> secondValue > firstValue;
+            case LOWER  -> secondValue < firstValue;
+            case DRAW   -> secondValue == firstValue;
+        };
 
         if (win) {
-            session.setBalance(session.getBalance() + WIN_AMOUNT);
+            if (guess == GuessType.DRAW) {
+                // Correct DRAW doubles the player's current balance
+                session.setBalance(session.getBalance() * 2);
+            } else {
+                session.setBalance(session.getBalance() + WIN_AMOUNT);
+            }
         } else {
             session.setBalance(session.getBalance() - LOSE_AMOUNT);
         }
@@ -125,7 +124,7 @@ public class GameService {
     // 🎯 Player Makes Guess with optional timeTaken (seconds)
     public GuessResponse makeGuess(Long gameId, GuessType guess, Integer timeTaken) {
         GameSession session = repository.findById(gameId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND));
 
         if (session.getStatus() == GameStatus.GAME_OVER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is already over");
@@ -137,20 +136,11 @@ public class GameService {
         int firstValue = CardUtil.cardValue(session.getFirstCard());
         int secondValue = CardUtil.cardValue(revealed);
 
-        boolean win;
-        switch (guess) {
-            case HIGHER:
-                win = secondValue > firstValue;
-                break;
-            case LOWER:
-                win = secondValue < firstValue;
-                break;
-            case DRAW:
-                win = secondValue == firstValue;
-                break;
-            default:
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown guess type");
-        }
+        boolean win = switch (guess) {
+            case HIGHER -> secondValue > firstValue;
+            case LOWER  -> secondValue < firstValue;
+            case DRAW   -> secondValue == firstValue;
+        };
 
         // Determine reward based on timeTaken (if null -> treat as 10 seconds)
         int time = 10;
@@ -161,8 +151,13 @@ public class GameService {
 
         String result;
         if (win) {
-            // award time-based reward
-            session.setBalance(session.getBalance() + reward);
+            if (guess == GuessType.DRAW) {
+                // Correct DRAW doubles the player's current balance
+                session.setBalance(session.getBalance() * 2);
+            } else {
+                // award time-based reward
+                session.setBalance(session.getBalance() + reward);
+            }
             result = "WIN";
         } else {
             session.setBalance(session.getBalance() - LOSE_AMOUNT);
@@ -203,7 +198,7 @@ public class GameService {
     // ⏱ Reveal the second card due to timer expiry; advances session without scoring
     public GuessResponse reveal(Long gameId) {
         GameSession session = repository.findById(gameId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, GAME_NOT_FOUND));
 
         if (session.getStatus() == GameStatus.GAME_OVER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is already over");
