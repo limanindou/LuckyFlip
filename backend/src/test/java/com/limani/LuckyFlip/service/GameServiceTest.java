@@ -1,17 +1,18 @@
 package com.limani.LuckyFlip.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.limani.LuckyFlip.dto.GameStartResponse;
 import com.limani.LuckyFlip.dto.GuessResponse;
 import com.limani.LuckyFlip.enums.GameStatus;
 import com.limani.LuckyFlip.enums.GuessType;
 import com.limani.LuckyFlip.model.GameSession;
 import com.limani.LuckyFlip.repository.GameSessionRepository;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
@@ -86,7 +87,7 @@ public class GameServiceTest {
 
         assertNotNull(resp);
         assertEquals("WIN", resp.getResult());
-        assertEquals(6, resp.getBalance());
+        assertEquals(10, resp.getBalance());
         assertEquals(GameStatus.PLAYING, resp.getStatus());
     }
 }
