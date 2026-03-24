@@ -162,13 +162,6 @@ Automation tip: add a Maven `frontend-maven-plugin` step to build the React app 
 
 ---
 
-## ℹ️ Final notes
-- This README now contains a full project overview and folder listing as requested.
-- If you'd like I can also:
-  - Add a `LICENSE` file (MIT) and update this README accordingly
-  - Create a `frontend-react/` scaffold and wire a dev proxy and Maven build step
-  - Clean inline SVG attributes in `frontend/widget.html` to silence IDE warnings
-
 Tell me which of these you'd like next and I'll implement it.
 
 ---
