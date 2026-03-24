@@ -1,79 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import PropTypes from 'prop-types'
-import { FaArrowUp, FaArrowDown, FaMinus, FaRedo, FaRegClock, FaPlay } from 'react-icons/fa'
 
-// CardImage: renders a playing-card-like SVG. If `hidden` is true, shows a card back.
-function CardImage({ value, seed = 0, hidden = false }) {
-  const suits = ['♠', '♥', '♦', '♣']
-  function pickSuit(val, s) {
-    const key = String(val) + '|' + String(s)
-    let h = 0
-    // Iterate over Unicode code points to avoid surrogate pair issues
-    for (const ch of key) {
-      const cp = ch.codePointAt(0) || 0
-      // use multiplication instead of bitwise shifts; truncate explicitly
-      h = Math.trunc(h * 31 + cp)
-    }
-    return suits[Math.abs(h) % suits.length]
-  }
-
-  const suit = pickSuit(value ?? '', seed)
-  const isRed = suit === '♥' || suit === '♦'
-
-  if (hidden || value === '?' || value === null || value === undefined) {
-    return (
-      <div className="card" aria-hidden>
-        <svg viewBox="0 0 200 280" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
-              <stop offset="0" stopColor="#0f1724" stopOpacity="1" />
-              <stop offset="1" stopColor="#081827" stopOpacity="1" />
-            </linearGradient>
-          </defs>
-          <rect x="6" y="6" rx="14" ry="14" width="188" height="268" fill="#071024" stroke="#0b1220" strokeWidth="4" />
-          <g transform="translate(0,0)">
-            <rect x="20" y="30" rx="8" ry="8" width="160" height="220" fill="url(#g)" stroke="#09121a" strokeWidth="2" />
-            <g fill="#0ca5b6" opacity="0.12">
-              <circle cx="60" cy="90" r="36" />
-              <circle cx="140" cy="190" r="36" />
-            </g>
-            <text x="100" y="150" textAnchor="middle" fontSize="48" fill="#06b6d4" opacity="0.95" fontWeight="700">★</text>
-          </g>
-        </svg>
-      </div>
-    )
-  }
-
-  const displayRank = String(value)
-  return (
-    <div className="card" role="img" aria-label={`Card ${displayRank} ${suit}`}>
-      <svg viewBox="0 0 200 280" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <rect x="6" y="6" rx="14" ry="14" width="188" height="268" fill="#fff" stroke="#ddd" strokeWidth="3" />
-        <text x="24" y="46" fontSize="34" fontWeight="700" fill={isRed ? '#c0392b' : '#111'}>{displayRank}</text>
-        <text x="24" y="86" fontSize="28" fill={isRed ? '#c0392b' : '#111'}>{suit}</text>
-        <text x="176" y="244" fontSize="34" fontWeight="700" fill={isRed ? '#c0392b' : '#111'} textAnchor="end" transform="rotate(180 176 244)">{displayRank}</text>
-        <text x="176" y="204" fontSize="28" fill={isRed ? '#c0392b' : '#111'} textAnchor="end" transform="rotate(180 176 204)">{suit}</text>
-        <text x="100" y="165" fontSize="72" textAnchor="middle" fill={isRed ? '#c0392b' : '#111'} fontWeight="700">{suit}</text>
-      </svg>
-    </div>
-  )
-}
-
-// Add prop-types validation for CardImage
-CardImage.propTypes = {
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  seed: PropTypes.number,
-  hidden: PropTypes.bool
-}
-
-CardImage.defaultProps = {
-  value: undefined,
-  seed: 0,
-  hidden: false
-}
-
-// Reward mapping by elapsed seconds (1-based). Index 1 => 1 second.
+const SUITS = ['♠', '♥', '♦', '♣']
+const RED_SUITS = new Set(['♥', '♦'])
 const TIME_REWARDS = {
   1: 10,
   2: 8,
@@ -86,44 +16,97 @@ const TIME_REWARDS = {
   9: 1,
   10: 0
 }
+const LEGEND_REWARDS = [10, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+
+function pickSuit(rank, seed) {
+  const key = `${String(rank)}|${String(seed)}`
+  let hash = 0
+  for (const ch of key) {
+    const cp = ch.codePointAt(0) || 0
+    hash = Math.trunc(hash * 31 + cp)
+  }
+  return SUITS[Math.abs(hash) % SUITS.length]
+}
+
+function cardValue(rank) {
+  if (rank === 'A') return 1
+  if (rank === 'J') return 11
+  if (rank === 'Q') return 12
+  if (rank === 'K') return 13
+  return Number.parseInt(rank, 10)
+}
+
+function cardRewardFromSecondsLeft(secondsLeft) {
+  const timeTaken = Math.max(1, Math.min(10, 11 - secondsLeft))
+  return TIME_REWARDS[timeTaken] ?? 0
+}
+
+function PlayingCard({ rank, suit, hidden }) {
+  if (hidden || !rank || !suit) {
+    return (
+      <div className="card-back" aria-hidden="true">
+        <div className="card-back-inner">
+          <div className="card-back-emblem">✦</div>
+        </div>
+      </div>
+    )
+  }
+
+  const suitClass = RED_SUITS.has(suit) ? 'red-suit' : 'black-suit'
+
+  return (
+    <div className={`playing-card ${suitClass}`} role="img" aria-label={`Card ${rank}${suit}`}>
+      <div className="card-corner">
+        <span className="card-rank">{rank}</span>
+        <span className="card-suit-small">{suit}</span>
+      </div>
+      <span className="card-suit-center">{suit}</span>
+      <div className="card-corner card-corner-br">
+        <span className="card-rank">{rank}</span>
+        <span className="card-suit-small">{suit}</span>
+      </div>
+    </div>
+  )
+}
+
+PlayingCard.propTypes = {
+  rank: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  suit: PropTypes.string,
+  hidden: PropTypes.bool
+}
+
+PlayingCard.defaultProps = {
+  rank: null,
+  suit: null,
+  hidden: false
+}
 
 export default function App() {
   const [gameId, setGameId] = useState(null)
   const [balance, setBalance] = useState(0)
   const [firstCard, setFirstCard] = useState(null)
-  const [secondCard, setSecondCard] = useState(null) // shown revealed card
-  const [pendingFirst, setPendingFirst] = useState(null) // next round's first card, applied after Next Try
+  const [secondCard, setSecondCard] = useState(null)
+  const [pendingFirst, setPendingFirst] = useState(null)
   const [status, setStatus] = useState(null)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-
-  // Popup state for showing reward/penalty
-  const [popup, setPopup] = useState({ show: false, text: '', type: '' })
-  const popupTimerRef = useRef(null)
-
   const [secondsLeft, setSecondsLeft] = useState(10)
+  const [streak, setStreak] = useState(0)
+  const [winCount, setWinCount] = useState(0)
+  const [drawCount, setDrawCount] = useState(0)
+  const [lossCount, setLossCount] = useState(0)
+  const [flashClass, setFlashClass] = useState('')
+  const [resultDetail, setResultDetail] = useState('')
+
   const startTimeRef = useRef(null)
   const timerRef = useRef(null)
+  const flashTimerRef = useRef(null)
 
-  // Start timer for a round
-  function startTimer() {
-    clearTimer()
-    setSecondsLeft(10)
-    startTimeRef.current = Date.now()
-    timerRef.current = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
-      const left = Math.max(0, 10 - elapsed)
-      setSecondsLeft(left)
-      if (left <= 0) {
-        clearTimer()
-        // auto-reveal when timer ends
-        if (gameId && !pendingFirst && status === 'PLAYING') {
-          handleReveal()
-        }
-      }
-    }, 200)
-  }
+  const guessed = Boolean(pendingFirst)
+  const currentSuit = firstCard ? pickSuit(firstCard, gameId ?? 0) : null
+  const nextSuit = secondCard ? pickSuit(secondCard, (gameId ?? 0) + 1) : null
+  const rewardHint = guessed ? '' : `+R${cardRewardFromSecondsLeft(secondsLeft)}`
 
   function clearTimer() {
     if (timerRef.current) {
@@ -132,41 +115,32 @@ export default function App() {
     }
   }
 
-  function showPopup(text, type = 'win', duration = 1400) {
-    if (popupTimerRef.current) {
-      clearTimeout(popupTimerRef.current)
-      popupTimerRef.current = null
-    }
-    setPopup({ show: true, text, type })
-    popupTimerRef.current = setTimeout(() => {
-      setPopup({ show: false, text: '', type: '' })
-      popupTimerRef.current = null
-    }, duration)
-  }
-
-  // Start a new game
-  const startGame = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const resp = await axios.post('/api/game/start')
-      const data = resp.data
-      setGameId(data.gameId)
-      setBalance(data.balance)
-      setFirstCard(data.firstCard)
-      setSecondCard(null)
-      setPendingFirst(null)
-      setStatus(data.status)
-      setResult(null)
-      startTimer()
-    } catch (e) {
-      setError(String(e?.response?.data?.message || e.message))
-    } finally {
-      setLoading(false)
+  function clearFlashTimer() {
+    if (flashTimerRef.current) {
+      clearTimeout(flashTimerRef.current)
+      flashTimerRef.current = null
     }
   }
 
-  // Compute timeTaken in whole seconds, 1..10
+  function startTimer() {
+    clearTimer()
+    setSecondsLeft(10)
+    startTimeRef.current = Date.now()
+
+    timerRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
+      const left = Math.max(0, 10 - elapsed)
+      setSecondsLeft(left)
+
+      if (left <= 0) {
+        clearTimer()
+        if (gameId && !pendingFirst && status === 'PLAYING') {
+          handleReveal()
+        }
+      }
+    }, 200)
+  }
+
   function computeTimeTaken() {
     if (!startTimeRef.current) return 10
     const elapsedMs = Date.now() - startTimeRef.current
@@ -176,32 +150,39 @@ export default function App() {
     return secs
   }
 
-  // Handle a guess click
-  const handleGuess = async (guessType) => {
-    if (!gameId || loading || status === 'GAME_OVER' || pendingFirst) return
+  function playFlash(type) {
+    clearFlashTimer()
+    setFlashClass(type === 'WIN' ? 'flash-win' : 'flash-lose')
+    flashTimerRef.current = setTimeout(() => {
+      setFlashClass('')
+      flashTimerRef.current = null
+    }, 620)
+  }
+
+  const startGame = async () => {
     setLoading(true)
-    clearTimer()
     setError(null)
+    clearFlashTimer()
+    setFlashClass('')
+
     try {
-      const timeTaken = computeTimeTaken()
-      const resp = await axios.post(`/api/game/${gameId}/guess`, null, { params: { guess: guessType, time: timeTaken } })
+      const resp = await axios.post('/api/game/start')
       const data = resp.data
-      // Display the revealed card
-      setSecondCard(data.revealedCard || data.secondCard)
-      // Do not immediately set firstCard; store pending next first
-      setPendingFirst(data.firstCard)
-      setResult(data.result)
+
+      setGameId(data.gameId)
       setBalance(data.balance)
+      setFirstCard(data.firstCard)
+      setSecondCard(null)
+      setPendingFirst(null)
       setStatus(data.status)
-
-      // Show popup: if win -> +R{reward}, else -> -R1
-      if (data.result === 'WIN') {
-        const reward = TIME_REWARDS[timeTaken] ?? 0
-        if (reward > 0) showPopup(`+R${reward}`, 'win')
-      } else if (data.result === 'LOSE') {
-        showPopup(`-R1`, 'lose')
-      }
-
+      setResult(null)
+      setResultDetail('')
+      setStreak(0)
+      setWinCount(0)
+      setDrawCount(0)
+      setLossCount(0)
+      setSecondsLeft(10)
+      startTimer()
     } catch (e) {
       setError(String(e?.response?.data?.message || e.message))
     } finally {
@@ -209,17 +190,66 @@ export default function App() {
     }
   }
 
-  // Handle reveal when timer expires
+  const handleGuess = async (guessType) => {
+    if (!gameId || loading || status === 'GAME_OVER' || pendingFirst) return
+
+    setLoading(true)
+    clearTimer()
+    setError(null)
+
+    try {
+      const timeTaken = computeTimeTaken()
+      const resp = await axios.post(`/api/game/${gameId}/guess`, null, {
+        params: { guess: guessType, time: timeTaken }
+      })
+      const data = resp.data
+
+      setSecondCard(data.revealedCard || data.secondCard)
+      setPendingFirst(data.firstCard)
+      setResult(data.result)
+      setBalance(data.balance)
+      setStatus(data.status)
+
+      if (data.result === 'WIN') {
+        const reward = TIME_REWARDS[timeTaken] ?? 0
+        setResultDetail(`+R${reward} · ${guessType}`)
+      } else {
+        setResultDetail(`-R1 · ${guessType}`)
+      }
+
+      if (data.result === 'WIN') {
+        setStreak((prev) => prev + 1)
+        if (guessType === 'DRAW') {
+          setDrawCount((prev) => prev + 1)
+        } else {
+          setWinCount((prev) => prev + 1)
+        }
+        playFlash('WIN')
+      } else if (data.result === 'LOSE') {
+        setStreak(0)
+        setLossCount((prev) => prev + 1)
+        playFlash('LOSE')
+      }
+    } catch (e) {
+      setError(String(e?.response?.data?.message || e.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleReveal = async () => {
     if (!gameId || loading || pendingFirst) return
+
     setLoading(true)
     setError(null)
+
     try {
       const resp = await axios.post(`/api/game/${gameId}/reveal`)
       const data = resp.data
       setSecondCard(data.revealedCard || data.secondCard)
       setPendingFirst(data.firstCard)
       setResult(null)
+      setResultDetail('')
       setBalance(data.balance)
       setStatus(data.status)
     } catch (e) {
@@ -229,105 +259,180 @@ export default function App() {
     }
   }
 
-  // Apply pending next round when user clicks Next Try
   const applyNext = () => {
-    if (!pendingFirst) return
+    if (!pendingFirst || status === 'GAME_OVER') return
     setFirstCard(pendingFirst)
     setSecondCard(null)
     setPendingFirst(null)
     setResult(null)
+    setResultDetail('')
     setError(null)
-    // start timer for new round
+    setFlashClass('')
     startTimer()
   }
 
-  // Cleanup on unmount
   useEffect(() => {
+    startGame()
     return () => {
       clearTimer()
-      if (popupTimerRef.current) clearTimeout(popupTimerRef.current)
+      clearFlashTimer()
     }
   }, [])
 
-  // compute popup classes to avoid nested ternary in JSX
-  const popupVisibleClass = popup.show ? 'show' : ''
-  let popupTypeClass = ''
-  if (popup.type === 'win') popupTypeClass = 'win'
-  else if (popup.type === 'lose') popupTypeClass = 'lose'
+  let compareArrow = null
+  if (guessed && firstCard && secondCard) {
+    const currentValue = cardValue(firstCard)
+    const nextValue = cardValue(secondCard)
+    if (nextValue > currentValue) compareArrow = <span className="arr-up">↑</span>
+    else if (nextValue < currentValue) compareArrow = <span className="arr-down">↓</span>
+    else compareArrow = <span className="arr-eq">=</span>
+  }
+
+  const showGameOver = status === 'GAME_OVER'
+  const timerWarn = !guessed && secondsLeft <= 3
 
   return (
-    <div className="app-root">
-      {/* Popup for results */}
-      <div className={`popup ${popupVisibleClass} ${popupTypeClass}`}>
-        {popup.text}
+    <div className="page-wrap">
+      <div className={`shell ${flashClass}`} id="shell">
+        <div className="header">
+          <div className="logo">
+            <span className="logo-suits">♠♥</span>
+            <span className="logo-text">Lucky<em>Flip</em></span>
+            <span className="logo-suits">♦♣</span>
+          </div>
+          <div className="header-right">
+            <span className="game-id">GAME #{gameId ?? '----'}</span>
+            {streak > 1 ? <span className="streak-badge">{`🔥 ${streak} streak`}</span> : null}
+          </div>
+        </div>
+
+        <div className="suit-divider">
+          <div className="suit-divider-line" />
+          <div className="suit-divider-suits">♠ ♥ ♦ ♣</div>
+          <div className="suit-divider-line" />
+        </div>
+
+        <div className="balance-row">
+          <div className="balance-pill">
+            <div className="balance-coin">R</div>
+            <span className="balance-amount">{Number(balance || 0).toFixed(2)}</span>
+          </div>
+          {winCount > 0 ? <span className="stat-pill stat-wins">{`${winCount}W`}</span> : null}
+          {drawCount > 0 ? <span className="stat-pill stat-draws">{`${drawCount}D`}</span> : null}
+          {lossCount > 0 ? <span className="stat-pill stat-losses">{`${lossCount}L`}</span> : null}
+        </div>
+
+        <div className="arena">
+          <div className="card-slot">
+            <div className="slot-label">CURRENT</div>
+            <PlayingCard rank={firstCard} suit={currentSuit} hidden={!firstCard} />
+          </div>
+
+          <div className="vs-column">
+            <div className="vs-ring">VS</div>
+            <div className="compare-arrow">{compareArrow}</div>
+          </div>
+
+          <div className="card-slot">
+            <div className="slot-label">NEXT</div>
+            <PlayingCard rank={secondCard} suit={nextSuit} hidden={!guessed} />
+          </div>
+        </div>
+
+        <div className="timer-block">
+          <div className={`timer-label ${timerWarn ? 'warn' : ''}`}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 1.5" />
+            </svg>
+            <span>{guessed ? '—' : `${secondsLeft}s`}</span>
+          </div>
+          <div className="timer-track">
+            <div
+              className={`timer-fill ${timerWarn ? 'warn' : ''}`}
+              style={{ width: guessed ? '0%' : `${(secondsLeft / 10) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {result ? (
+          <div className={`result-banner ${result === 'WIN' ? 'win' : 'lose'}`}>
+            <span className="result-icon">{result === 'WIN' ? '★' : '✕'}</span>
+            <span>{result}</span>
+            <span className="result-sep">·</span>
+            <span className="result-detail">{resultDetail}</span>
+          </div>
+        ) : null}
+
+        {showGameOver ? <div className="game-over">GAME OVER · Balance reached zero</div> : null}
+
+        <div className="guess-buttons">
+          <button
+            className="btn btn-higher"
+            onClick={() => handleGuess('HIGHER')}
+            disabled={!gameId || loading || guessed || showGameOver}
+          >
+            <span className="btn-arrow">↑</span>
+            <span className="btn-label">Higher</span>
+            <span className="btn-reward">{rewardHint}</span>
+          </button>
+
+          <button
+            className="btn btn-draw"
+            onClick={() => handleGuess('DRAW')}
+            disabled={!gameId || loading || guessed || showGameOver}
+          >
+            <span className="btn-arrow">=</span>
+            <span className="btn-label">Draw</span>
+            <span className="btn-reward">{rewardHint}</span>
+          </button>
+
+          <button
+            className="btn btn-lower"
+            onClick={() => handleGuess('LOWER')}
+            disabled={!gameId || loading || guessed || showGameOver}
+          >
+            <span className="btn-arrow">↓</span>
+            <span className="btn-label">Lower</span>
+            <span className="btn-reward">{rewardHint}</span>
+          </button>
+        </div>
+
+        <div className="secondary-grid">
+          <button className="btn-ghost" onClick={startGame} disabled={loading}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            New Game
+          </button>
+
+          <button className="btn-ghost" onClick={applyNext} disabled={!pendingFirst || loading || showGameOver}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-3.2-6.9" />
+              <path d="M21 3v6h-6" />
+            </svg>
+            Next Try
+          </button>
+        </div>
+
+        <div className="legend">
+          <span className="legend-label">SPEED BONUS</span>
+          <div className="legend-bars">
+            {LEGEND_REWARDS.map((reward, idx) => {
+              const elapsed = 10 - secondsLeft
+              const active = !guessed && elapsed === idx
+              return (
+                <div key={`pip-${idx}`} className={`legend-pip ${active ? 'active' : ''}`}>
+                  <div className="legend-bar" style={{ height: `${Math.max(3, reward * 2.8)}px` }} />
+                  <div className="legend-val">{reward > 0 ? `R${reward}` : ''}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {error ? <div className="error">{String(error)}</div> : null}
       </div>
-
-      <header className="header">
-        <h1>Lucky Flip</h1>
-        <p className="tag">Guess if the next card is higher, lower or equal</p>
-      </header>
-
-      <main className="container">
-        <section className="panel">
-          <div className="balance">Balance: <strong>R{balance}</strong></div>
-
-          <div className="cards-row">
-            <div className="column">
-              <h3>Current</h3>
-              <CardImage value={firstCard ?? '--'} seed={gameId ?? 0} />
-            </div>
-
-            <div className="column">
-              <h3>Next (revealed)</h3>
-              <CardImage value={secondCard ?? '?'} seed={(gameId ?? 0) + 1} hidden={secondCard == null} />
-            </div>
-          </div>
-
-          <div className="timer-row" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12,marginTop:16}}>
-            <div className="clock"><FaRegClock /></div>
-            <div style={{minWidth:140,textAlign:'center'}}>
-              <div style={{fontWeight:700}}>{secondsLeft}s</div>
-              <div style={{height:6,background:'#0f1724',borderRadius:6,marginTop:6}}>
-                <div style={{height:6,width:`${(secondsLeft/10)*100}%`,background:'#06b6d4',borderRadius:6}} />
-              </div>
-            </div>
-          </div>
-
-          <div className="controls" style={{marginTop:18}}>
-            <button className="btn" onClick={() => handleGuess('HIGHER')} disabled={!gameId || loading || status === 'GAME_OVER' || !!pendingFirst} aria-label="Guess Higher">
-              <div className="btn-icon higher"><FaArrowUp /></div>
-              <div className="btn-label">Higher</div>
-            </button>
-            <button className="btn" onClick={() => handleGuess('LOWER')} disabled={!gameId || loading || status === 'GAME_OVER' || !!pendingFirst} aria-label="Guess Lower">
-              <div className="btn-icon lower"><FaArrowDown /></div>
-              <div className="btn-label">Lower</div>
-            </button>
-            <button className="btn" onClick={() => handleGuess('DRAW')} disabled={!gameId || loading || status === 'GAME_OVER' || !!pendingFirst} aria-label="Guess Draw">
-              <div className="btn-icon draw"><FaMinus /></div>
-              <div className="btn-label">Draw</div>
-            </button>
-          </div>
-
-          <div className="actions" style={{display:'flex',gap:12,justifyContent:'center',marginTop:12}}>
-            <button className="start" onClick={startGame} disabled={loading}><FaPlay style={{marginRight:8}}/> Start New Game</button>
-            <button className="start" onClick={applyNext} disabled={!pendingFirst || loading || status === 'GAME_OVER'} style={{background:'#475569'}}> <FaRedo /> Next Try</button>
-          </div>
-
-          {result && (
-            <div className={`result ${result === 'WIN' ? 'win' : 'lose'}`}>
-              {result} — Balance: R{balance}
-            </div>
-          )}
-
-          {status === 'GAME_OVER' && (
-            <div className="game-over">Game Over — your balance reached zero.</div>
-          )}
-
-          {error && <div className="error">{String(error)}</div>}
-        </section>
-      </main>
-
-      <footer className="footer">Built with ❤️ by Limani Ndou — Lucky Flip Game</footer>
     </div>
   )
 }
