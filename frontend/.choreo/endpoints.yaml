@@ -1,0 +1,9 @@
+version: 0.1
+endpoints:
+  - name: luckyflip-frontend
+    displayName: LuckyFlip Frontend
+    port: 80
+    type: REST
+    networkVisibilities:
+      - Public
+    context: /

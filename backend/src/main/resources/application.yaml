@@ -1,5 +1,9 @@
 spring:
   application:
     name: LuckyFlip
-  server:
-    port: ${8080}  
+  jpa:
+    open-in-view: false
+
+server:
+  port: ${PORT:8080}
+

@@ -14,6 +14,8 @@ services:
       context: ./frontend
     ports:
       - "5173:80"
+    environment:
+      - BACKEND_URL=http://backend:8080
     depends_on:
       - backend
     restart: unless-stopped
