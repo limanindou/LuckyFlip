@@ -149,21 +149,4 @@ Automation tip: add a Maven `frontend-maven-plugin` step to build the React app 
 
 ---
 
-## 🐞 Troubleshooting
-- Backend doesn't start: ensure Java JDK is installed and `JAVA_HOME` is set to Java 11+.
-- Port conflicts: check `application.yaml` or kill the process using port 8080.
-- Widget not loading fonts/assets when opened via `file://`: run a local server (Python) or serve through Spring Boot.
-
----
-
-## 📝 License & contributing
-- Add a `LICENSE` file to choose a license (e.g., MIT) if you want this repo public.
-- CONTRIBUTING guidelines: you can add a `CONTRIBUTING.md` for PR workflow, branch naming, and code style.
-
----
-
-Tell me which of these you'd like next and I'll implement it.
-
----
-
 Thanks — enjoy working on LuckyFlip! 🎉
