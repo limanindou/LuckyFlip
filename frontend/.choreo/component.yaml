@@ -1,0 +1,12 @@
+apiVersion: core.choreo.dev/v1beta1
+kind: Component
+metadata:
+  name: luckyflip-frontend
+  annotations:
+    core.choreo.dev/display-name: LuckyFlip Frontend
+spec:
+  type: WebApplication
+  build:
+    dockerfilePath: Dockerfile
+  deployment:
+    containerPort: 80

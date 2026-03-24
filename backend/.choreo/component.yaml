@@ -1,0 +1,15 @@
+apiVersion: core.choreo.dev/v1beta1
+kind: Component
+metadata:
+  name: luckyflip-backend
+  annotations:
+    core.choreo.dev/display-name: LuckyFlip Backend
+spec:
+  type: Service
+  build:
+    buildpack:
+      name: Java
+      version: "17"
+    dockerfilePath: Dockerfile
+  deployment:
+    containerPort: 8080

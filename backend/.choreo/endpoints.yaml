@@ -1,0 +1,10 @@
+version: 0.1
+endpoints:
+  - name: luckyflip-api
+    displayName: LuckyFlip API
+    port: 8080
+    type: REST
+    networkVisibilities:
+      - Public
+      - Project
+    context: /
